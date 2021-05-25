@@ -1,6 +1,8 @@
 from app.utils import get_component
 from bs4 import BeautifulSoup
 import requests
+import json
+import re
 
 
 class Product:
@@ -9,7 +11,7 @@ class Product:
         self.product_name = product_name
         self.opinions = opinions
         self.opinions_count = opinions_count
-        self.pros_ount = pros_count
+        self.pros_count = pros_count
         self.cons_count = cons_count
         self.average_score = average_score
 
@@ -21,31 +23,46 @@ class Product:
                 page_dom = BeautifulSoup(response.text, 'html.parser')
                 opinions = page_dom.select("div.js_product-review")
                 for opinion in opinions:
-         
-                    self.opinions.append(single_opinion)
+                    self.opinions.append(Opinion().extract_components(opinion).transform_components())
                 page += 1
             else: break
+        return self
 
-    def __dict__(self):
-        pass
+    def to_dict(self):
+        return {
+            "product_id": self.product_id,
+            "product_name": self.product_name,
+            "opinions_count": self.opinions_count,
+            "pros_count": self.pros_count,
+            "cons_count": self.cons_count,
+            "average_score": self.average_score,
+            "opinions": [opinion.to_dict() for opinion in self.opinions]
+        }
 
     def __str__(self) -> str:
-        pass
+        return f"""
+            product_id: {self.product_id}<br>
+            product_name: {self.product_name}<br>
+            opinions_count: {self.opinions_count}<br>
+            pros_count: {self.pros_count}<br>
+            cons_count: {self.cons_count}<br>
+            average_score: {self.average_score}<br>
+            opinions: <br><br>
+        """ + "<br><br>".join(str(opinion) for opinion in self.opinions)
 
     def __repr__(self) -> str:
-        pass
+        return f"Product(product_id={self.product_id}, product_name={self.product_name}, opinions_count={self.opinions_count}, pros_count={self.pros_count}, cons_count={self.cons_count}, average_score={self.average_score}, opinions: [" + ", ".join(opinion.__repr__() for opinion in self.opinions) + "])"
 
-    def get_opinions():
-        pass    
-
-    def display_opinions():
-        pass
-
-    def display_statistics():
-        pass
-
-    def display_charts():
-        pass
+    def export_to_json(self):
+        with open(f"app/products/{self.product_id}.json", "w", encoding="UTF-8") as jf:
+            json.dump(self.to_dict(), jf, ensure_ascii=False, indent=4)
+    
+    def analyze(self):
+        self.opinions_count = len(self.opinions)
+        # self.pros_count = self.opinions.pros.map(bool).sum()
+        # self.cons_count = self.opinions.cons.map(bool).sum()
+        # self.average_score = self.opinions.stars.mean()
+        return self
 
 
 class Opinion:
@@ -65,35 +82,38 @@ class Opinion:
 
     def __init__(self, opinion_id = None, author = None, recommendation = None, stars = None, purchased = None, date = None, purchase_date = None, usefulness = None, uselessness = None, content = None, cons = None, pros = None) -> None:
         self.opinion_id = opinion_id
-        self.author = author
-        self.recommendation = recommendation
-        self.stars = stars
-        self.purchased = purchased
-        self.date = date
-        self.purchase_date = purchase_date
-        self.usefulness = usefulness
-        self.uselessness = uselessness
-        self.content = content
-        self.cons = cons
-        self.pros = pros
+        # self.author = author
+        # self.recommendation = recommendation
+        # self.stars = stars
+        # self.purchased = purchased
+        # self.date = date
+        # self.purchase_date = purchase_date
+        # self.usefulness = usefulness
+        # self.uselessness = uselessness
+        # self.content = content
+        # self.cons = cons
+        # self.pros = pros
 
-    def extract_components(self):
-        single_opinion = {key:get_component(opinion, *value) for key, value in selectors.items()}
-        single_opinion["opinion_id"] = opinion["data-entry-id"]
+    def extract_components(self, opinion):
+        for key, value in self.selectors.items():
+            setattr(self, key, get_component(opinion, *value))
+        self.opinion_id = opinion["data-entry-id"]
+        return self
 
     def transform_components(self):
-        single_opinion["recommendation"] = True if single_opinion["recommendation"] == "Polecam" else False if single_opinion["recommendation"] == "Nie polecam" else None
-        single_opinion["stars"] = float(single_opinion["stars"].split("/")[0].replace(",", "."))
-        single_opinion["content"] = re.sub("\\s", " ", single_opinion["content"])
-        single_opinion["verified"] = bool(single_opinion["verified"])
-        single_opinion["usefulness"] = int(single_opinion["usefulness"])
-        single_opinion["uselessness"] = int(single_opinion["uselessness"])
+        self.recommendation = True if self.recommendation == "Polecam" else False if self.recommendation == "Nie polecam" else None
+        self.stars = float(self.stars.split("/")[0].replace(",", "."))
+        self.content = re.sub("\\s", " ", self.content)
+        self.verified = bool(self.verified)
+        self.usefulness = int(self.usefulness)
+        self.uselessness = int(self.uselessness)
+        return self
 
-    def __dict__(self):
-        pass
+    def to_dict(self):
+        return {"opinion_id": self.opinion_id} | {key: getattr(self, key) for key in self.selectors.keys()}
 
     def __str__(self) -> str:
-        pass
+        return f"opinion_id: {self.opinion_id}<br>" + "<br>".join(f"{key}: {str(getattr(self, key))}" for key in self.selectors.keys())
 
     def __repr__(self) -> str:
-        pass
+        return f"Opinion(opinion_id = {self.opinion_id}, " + ", ".join(f"{key} = {str(getattr(self, key))}" for key in self.selectors.keys() + ")")
