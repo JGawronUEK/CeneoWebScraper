@@ -56,7 +56,22 @@ class Product:
     def export_to_json(self):
         with open(f"app/products/{self.product_id}.json", "w", encoding="UTF-8") as jf:
             json.dump(self.to_dict(), jf, ensure_ascii=False, indent=4)
-    
+
+    def import_from_json(self):
+        with open(f"app/products/{self.product_id}.json", "r", encoding="UTF-8") as jf:
+            product = json.load(jf)
+
+        self.product_id = product['product_id']
+        self.product_name = product['product_name']
+        self.opinions_count = product['opinions_count']
+        self.pros_count = product['pros_count']
+        self.cons_count = product['cons_count']
+        self.average_score = product['average_score']
+        opinions = product['opinions']
+        for opinion in opinions:
+            self.opinions.append(Opinion(**opinion))
+            
+
     def analyze(self):
         self.opinions_count = len(self.opinions)
         # self.pros_count = self.opinions.pros.map(bool).sum()
@@ -80,19 +95,20 @@ class Opinion:
         "uselessness": ["span[id^='votes-no']"]
     }
 
-    def __init__(self, opinion_id = None, author = None, recommendation = None, stars = None, purchased = None, date = None, purchase_date = None, usefulness = None, uselessness = None, content = None, cons = None, pros = None) -> None:
+    def __init__(self, opinion_id = None, author = None, recommendation = None, stars = None, purchased = None, verified = None , date = None, purchase_date = None, usefulness = None, uselessness = None, content = None, cons = None, pros = None) -> None:
         self.opinion_id = opinion_id
-        # self.author = author
-        # self.recommendation = recommendation
-        # self.stars = stars
-        # self.purchased = purchased
-        # self.date = date
-        # self.purchase_date = purchase_date
-        # self.usefulness = usefulness
-        # self.uselessness = uselessness
-        # self.content = content
-        # self.cons = cons
-        # self.pros = pros
+        self.author = author
+        self.recommendation = recommendation
+        self.stars = stars
+        self.purchased = purchased
+        self.verified = verified
+        self.date = date
+        self.purchase_date = purchase_date
+        self.usefulness = usefulness
+        self.uselessness = uselessness
+        self.content = content
+        self.cons = cons
+        self.pros = pros
 
     def extract_components(self, opinion):
         for key, value in self.selectors.items():
